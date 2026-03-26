@@ -1,16 +1,17 @@
 import Head from 'next/head'
 
 export async function getServerSideProps() {
-  const { default: fs } = await import('fs')
-  const { join } = await import('path')
+  const { Redis } = await import('@upstash/redis')
 
-  const DATA_FILE = join('/tmp', 'rsvp-data.json')
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  })
+
   let guests = []
-
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      guests = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
-    }
+    const raw = await redis.lrange('cha-casa-nova:guests', 0, -1)
+    guests = raw.map(item => typeof item === 'string' ? JSON.parse(item) : item)
   } catch (_) {}
 
   return { props: { guests } }

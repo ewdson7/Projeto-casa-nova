@@ -1,52 +1,41 @@
-import fs from 'fs'
-import path from 'path'
+import { Redis } from '@upstash/redis'
 
-// File path para persistência (funciona no Vercel com /tmp)
-const DATA_FILE = path.join('/tmp', 'rsvp-data.json')
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+})
 
-function readData() {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
-    }
-  } catch (_) {}
-  return []
-}
+const KEY = 'cha-casa-nova:guests'
 
-function writeData(data) {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2))
-  } catch (_) {}
-}
-
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { name, attend, guestCount, giftChoice, message } = req.body
 
-    if (!name || !attend) {
+    if (!name?.trim() || !attend) {
       return res.status(400).json({ error: 'Nome e confirmação são obrigatórios.' })
     }
 
-    const guests = readData()
-
-    const newGuest = {
+    const guest = {
       id: Date.now(),
-      name,
+      name: name.trim(),
       attend,
       guestCount: guestCount || '1',
       giftChoice: giftChoice || '',
-      message: message || '',
+      message: message?.trim() || '',
       createdAt: new Date().toISOString(),
     }
 
-    guests.push(newGuest)
-    writeData(guests)
+    // Adiciona ao final da lista — persiste permanentemente no Redis
+    await redis.rpush(KEY, JSON.stringify(guest))
 
-    return res.status(200).json({ success: true, guest: newGuest })
+    return res.status(200).json({ success: true, guest })
   }
 
   if (req.method === 'GET') {
-    const guests = readData()
+    const raw = await redis.lrange(KEY, 0, -1)
+    const guests = raw.map(item =>
+      typeof item === 'string' ? JSON.parse(item) : item
+    )
     return res.status(200).json(guests)
   }
 
