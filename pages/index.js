@@ -312,21 +312,10 @@ export default function Home() {
               <div className="info-value">às 17h</div>
             </div>
            <a 
-  href="<a 
-  href="https://www.google.com/maps/search/?api=1&query=R.+do+Campo+da+Feira+55" 
+  href="https://maps.app.goo.gl/62oAx2DXYkgZBDQP7" 
   target="_blank" 
   rel="noopener noreferrer"
-  className="info-card-link"
->
-  <div className="info-card">
-    <div className="info-icon">📍</div>
-    <div className="info-label">Local</div>
-    <div className="info-value">R. do Campo da feira<br />N°55</div>
-  </div>
-</a>" 
-  target="_blank" 
-  rel="noopener noreferrer"
-  className="info-card-link"
+  style={{ textDecoration: 'none', color: 'inherit' }}
 >
   <div className="info-card">
     <div className="info-icon">📍</div>
