@@ -4,14 +4,16 @@ import Head from 'next/head'
 const gifts = [
   { id: 1, emoji: '🫖', name: 'Jogo de Chá' },
   { id: 2, emoji: '🛁', name: 'Jogo de Toalhas' },
-  { id: 3, emoji: '🪴', name: 'Planta Decorativa' },
-  { id: 4, emoji: '🕯️', name: 'Velas Aromáticas' },
-  { id: 5, emoji: '🍽️', name: 'Jogo de Pratos' },
-  { id: 6, emoji: '🛏️', name: 'Jogo de Cama' },
-  { id: 7, emoji: '🏺', name: 'Vaso Decorativo' },
-  { id: 8, emoji: '🪞', name: 'Porta Retratos' },
-  { id: 9, emoji: '☕', name: 'Cafeteira' },
-  { id: 10, emoji: '🧺', name: 'Porta-objetos' },
+  { id: 3, emoji: '🍽️', name: 'Jogo de Pratos' },
+  { id: 4, emoji: '🛏️', name: 'Jogo de Cama' },
+  { id: 5, emoji: '☕', name: 'Cafeteira' },
+  { id: 6, emoji: '🍰', name: 'Forma de Fazer Bolo' },
+  { id: 7, emoji: '🫗', name: 'Jarra' },
+  { id: 8, emoji: '🍳', name: 'Jogo de Panela' },
+  { id: 9, emoji: '🌪️', name: 'Liquidificador' },
+  { id: 10, emoji: '🍲', name: 'Pirex' },
+  { id: 11, emoji: '🪟', name: 'Cortina' },
+  { id: 12, emoji: '🎁', name: 'Outro' },
 ]
 
 export default function Home() {
