@@ -5,9 +5,26 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN,
 })
 
-const KEY = 'cha-casa-nova:guests'
+const GUESTS_KEY = 'cha-casa-nova:guests'
+const GIFTS_KEY  = 'cha-casa-nova:taken-gifts'
 
 export default async function handler(req, res) {
+
+  // GET — retorna convidados e presentes já escolhidos
+  if (req.method === 'GET') {
+    const [rawGuests, takenGifts] = await Promise.all([
+      redis.lrange(GUESTS_KEY, 0, -1),
+      redis.smembers(GIFTS_KEY),
+    ])
+
+    const guests = rawGuests.map(item =>
+      typeof item === 'string' ? JSON.parse(item) : item
+    )
+
+    return res.status(200).json({ guests, takenGifts })
+  }
+
+  // POST — salva confirmação de presença
   if (req.method === 'POST') {
     const { name, attend, guestCount, giftChoice, message } = req.body
 
@@ -25,18 +42,17 @@ export default async function handler(req, res) {
       createdAt: new Date().toISOString(),
     }
 
-    // Adiciona ao final da lista — persiste permanentemente no Redis
-    await redis.rpush(KEY, JSON.stringify(guest))
+    const ops = [redis.rpush(GUESTS_KEY, JSON.stringify(guest))]
+
+    // Marca presente como reservado no Set (sem revelar quem escolheu)
+    // "Outro" nunca entra no Set — permanece sempre disponível na fila
+    if (giftChoice && giftChoice.trim() && giftChoice.trim() !== 'Outro') {
+      ops.push(redis.sadd(GIFTS_KEY, giftChoice.trim()))
+    }
+
+    await Promise.all(ops)
 
     return res.status(200).json({ success: true, guest })
-  }
-
-  if (req.method === 'GET') {
-    const raw = await redis.lrange(KEY, 0, -1)
-    const guests = raw.map(item =>
-      typeof item === 'string' ? JSON.parse(item) : item
-    )
-    return res.status(200).json(guests)
   }
 
   res.setHeader('Allow', ['GET', 'POST'])

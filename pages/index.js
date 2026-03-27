@@ -1,43 +1,82 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Head from 'next/head'
 
-const gifts = [
-  { id: 1, emoji: '🫖', name: 'Jogo de Chá' },
-  { id: 2, emoji: '🛁', name: 'Jogo de Toalhas' },
-  { id: 3, emoji: '🍽️', name: 'Jogo de Pratos' },
-  { id: 4, emoji: '🛏️', name: 'Jogo de Cama' },
-  { id: 5, emoji: '☕', name: 'Cafeteira' },
-  { id: 6, emoji: '🍰', name: 'Forma de Fazer Bolo' },
-  { id: 7, emoji: '🫗', name: 'Jarra' },
-  { id: 8, emoji: '🍳', name: 'Jogo de Panela' },
-  { id: 9, emoji: '🌪️', name: 'Liquidificador' },
+// ─── 32 presentes no total ───────────────────────────────────────────────────
+const ALL_GIFTS = [
+  { id: 1,  emoji: '🫖', name: 'Jogo de Chá' },
+  { id: 2,  emoji: '🛁', name: 'Jogo de Toalhas' },
+  { id: 3,  emoji: '🍽️', name: 'Jogo de Pratos' },
+  { id: 4,  emoji: '🛏️', name: 'Jogo de Cama' },
+  { id: 5,  emoji: '☕', name: 'Cafeteira' },
+  { id: 6,  emoji: '🍰', name: 'Forma de Bolo' },
+  { id: 7,  emoji: '🫗', name: 'Jarra' },
+  { id: 8,  emoji: '🍳', name: 'Jogo de Panela' },
+  { id: 9,  emoji: '🌪️', name: 'Liquidificador' },
   { id: 10, emoji: '🍲', name: 'Pirex' },
   { id: 11, emoji: '🪟', name: 'Cortina' },
-  { id: 12, emoji: '🎁', name: 'Outro' },
+  { id: 12, emoji: '🧴', name: 'Porta Shampoo' },
+  { id: 13, emoji: '🪥', name: 'Porta Escova' },
+  { id: 14, emoji: '🧺', name: 'Cesto de Roupa' },
+  { id: 15, emoji: '🪣', name: 'Balde e Rodo' },
+  { id: 16, emoji: '🧹', name: 'Vassoura e Pá' },
+  { id: 17, emoji: '🫙', name: 'Potes Herméticos' },
+  { id: 18, emoji: '🥄', name: 'Jogo de Talheres' },
+  { id: 19, emoji: '🫕', name: 'Wok / Frigideira' },
+  { id: 20, emoji: '🍵', name: 'Canecas' },
+  { id: 21, emoji: '👣', name: 'Tapetes' },
+  { id: 22, emoji: '🔪', name: 'Faca e Tábua' },
+  { id: 23, emoji: '🛒', name: 'Caixas Organizadoras' },
+  { id: 24, emoji: '🪴', name: 'Planta Decorativa' },
+  { id: 25, emoji: '🕯️', name: 'Velas Aromáticas' },
+  { id: 26, emoji: '🏺', name: 'Vaso Decorativo' },
+  { id: 27, emoji: '🪞', name: 'Porta Retratos' },
+  { id: 28, emoji: '👟', name: 'Organizador de sapatos' },
+  { id: 29, emoji: '🍶', name: 'Galheteiro' },
+  { id: 30, emoji: '🛋️', name: 'Almofadas' },
+  { id: 31, emoji: '💡', name: 'Luminária' },
+  { id: 32, emoji: '🧻', name: 'Porta Papel Toalha' },
 ]
+
+const OUTRO = { id: 99, emoji: '🎁', name: 'Outro' }
+const VISIBLE_COUNT = 7 // 7 normais + "Outro" = 8 chips sempre visíveis
+
+// Retorna os primeiros 7 disponíveis (não reservados) + "Outro" no fim
+function buildVisibleGifts(takenNames) {
+  const available = ALL_GIFTS.filter(g => !takenNames.includes(g.name))
+  return [...available.slice(0, VISIBLE_COUNT), OUTRO]
+}
 
 export default function Home() {
   const [form, setForm] = useState({
-    name: '',
-    attend: '',
-    guestCount: '1',
-    giftChoice: '',
-    message: '',
+    name: '', attend: '', guestCount: '1', giftChoice: '', message: '',
   })
-  const [loading, setLoading] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [submitted, setSubmitted]   = useState(false)
+  const [error, setError]           = useState('')
+  const [takenGifts, setTakenGifts] = useState([])
+
+  useEffect(() => {
+    fetch('/api/rsvp')
+      .then(r => r.json())
+      .then(data => setTakenGifts(data.takenGifts || []))
+      .catch(() => {})
+  }, [])
+
+  const visibleGifts = buildVisibleGifts(takenGifts)
 
   function set(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  function selectGift(name) {
+    set('giftChoice', form.giftChoice === name ? '' : name)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-
     if (!form.name.trim()) return setError('Por favor, informe seu nome 💛')
-    if (!form.attend) return setError('Nos diga se você vai comparecer 🌸')
+    if (!form.attend)       return setError('Nos diga se você vai comparecer 🌸')
 
     setLoading(true)
     try {
@@ -47,6 +86,12 @@ export default function Home() {
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error()
+
+      // Atualiza lista local de reservados para o chip sumir imediatamente
+      if (form.giftChoice && form.giftChoice !== 'Outro') {
+        setTakenGifts(prev => [...prev, form.giftChoice])
+      }
+
       setSubmitted(true)
     } catch {
       setError('Algo deu errado. Tente novamente.')
@@ -55,7 +100,8 @@ export default function Home() {
     }
   }
 
-  const firstName = form.name.split(' ')[0]
+  const firstName    = form.name.split(' ')[0]
+  const takenToShow  = takenGifts.filter(n => n && n !== 'Outro')
 
   return (
     <>
@@ -74,7 +120,6 @@ export default function Home() {
         }
         .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
 
-        /* HEADER */
         header { text-align: center; padding: 72px 0 52px; }
         .floral { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
         .petal { font-size: 22px; display: inline-block; animation: sway 4s ease-in-out infinite; }
@@ -98,207 +143,139 @@ export default function Home() {
         }
         h1 em { font-style: italic; color: var(--rose); }
         .subtitle {
-          margin-top: 18px;
-          font-family: 'Cormorant Garamond', serif;
-          font-style: italic; font-size: 19px;
-          color: var(--taupe); font-weight: 300;
+          margin-top: 18px; font-family: 'Cormorant Garamond', serif;
+          font-style: italic; font-size: 19px; color: var(--taupe); font-weight: 300;
         }
-        .divider {
-          display: flex; align-items: center;
-          gap: 16px; max-width: 300px;
-          margin: 36px auto;
-        }
+        .divider { display: flex; align-items: center; gap: 16px; max-width: 300px; margin: 36px auto; }
         .divider-line { flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--blush), transparent); }
         .divider-dot { color: var(--rose); font-size: 16px; }
 
-        /* INFO CARDS */
-        .info-grid {
-          display: grid; grid-template-columns: repeat(3,1fr);
-          gap: 14px; margin-bottom: 60px;
-        }
+        .info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 60px; }
         @media(max-width:520px) { .info-grid { grid-template-columns: 1fr; } }
         .info-card {
-          background: rgba(255,255,255,0.65);
-          border: 1px solid rgba(232,196,176,0.4);
-          border-radius: 20px; padding: 26px 16px;
-          text-align: center; backdrop-filter: blur(8px);
-          transition: transform .3s, box-shadow .3s;
+          background: rgba(255,255,255,0.65); border: 1px solid rgba(232,196,176,0.4);
+          border-radius: 20px; padding: 26px 16px; text-align: center;
+          backdrop-filter: blur(8px); transition: transform .3s, box-shadow .3s;
         }
         .info-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(160,90,69,.1); }
         .info-icon { font-size: 26px; margin-bottom: 10px; }
-        .info-label {
-          font-size: 10px; font-weight: 500;
-          letter-spacing: 3px; text-transform: uppercase;
-          color: var(--rose); margin-bottom: 5px;
-        }
-        .info-value {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 18px; color: var(--dark); line-height: 1.3;
-        }
+        .info-label { font-size: 10px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; color: var(--rose); margin-bottom: 5px; }
+        .info-value { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--dark); line-height: 1.3; }
 
-        /* SECTION */
-        .sec-title {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 36px; font-weight: 300;
-          color: var(--dark); text-align: center; margin-bottom: 6px;
-        }
+        .sec-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 300; color: var(--dark); text-align: center; margin-bottom: 6px; }
         .sec-title em { font-style: italic; color: var(--rose); }
-        .sec-note {
-          text-align: center;
-          font-family: 'Cormorant Garamond', serif;
-          font-style: italic; font-size: 16px;
-          color: var(--text-light); margin-bottom: 36px;
+        .sec-note { text-align: center; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 16px; color: var(--text-light); margin-bottom: 36px; }
+
+        /* PRESENTES RESERVADOS */
+        .taken-section { margin-bottom: 56px; }
+        .taken-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .taken-tag {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 8px 16px; border-radius: 20px;
+          background: rgba(138,158,140,0.12); border: 1px solid rgba(138,158,140,0.3);
+          font-size: 13px; color: var(--sage); font-family: 'Jost', sans-serif;
+        }
+        .taken-tag .t-emoji { font-size: 15px; }
+        .taken-empty {
+          text-align: center; font-family: 'Cormorant Garamond', serif;
+          font-style: italic; font-size: 16px; color: var(--text-light);
+          padding: 24px; background: rgba(255,255,255,0.5);
+          border: 1px dashed rgba(181,169,154,.3); border-radius: 16px;
         }
 
         /* FORM */
         .form-section { margin-bottom: 72px; }
         .form-card {
-          background: rgba(255,255,255,0.72);
-          border: 1px solid rgba(232,196,176,0.4);
+          background: rgba(255,255,255,0.72); border: 1px solid rgba(232,196,176,0.4);
           border-radius: 28px; padding: 44px 40px;
-          backdrop-filter: blur(12px);
-          box-shadow: 0 4px 60px rgba(160,90,69,.07);
+          backdrop-filter: blur(12px); box-shadow: 0 4px 60px rgba(160,90,69,.07);
         }
         @media(max-width:520px) { .form-card { padding: 28px 20px; } }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         @media(max-width:480px) { .form-row { grid-template-columns: 1fr; } }
         .form-group { margin-bottom: 18px; }
-        label {
-          display: block; font-size: 11px; font-weight: 500;
-          letter-spacing: 2.5px; text-transform: uppercase;
-          color: var(--rose); margin-bottom: 7px;
-        }
+        label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 2.5px; text-transform: uppercase; color: var(--rose); margin-bottom: 7px; }
         input, select, textarea {
           width: 100%; padding: 13px 17px;
-          border: 1px solid rgba(181,169,154,.4);
-          border-radius: 12px;
-          background: rgba(255,255,255,.85);
-          font-family: 'Jost', sans-serif;
-          font-size: 14px; color: var(--dark);
-          outline: none;
+          border: 1px solid rgba(181,169,154,.4); border-radius: 12px;
+          background: rgba(255,255,255,.85); font-family: 'Jost', sans-serif;
+          font-size: 14px; color: var(--dark); outline: none;
           transition: border-color .2s, box-shadow .2s;
           -webkit-appearance: none; appearance: none;
         }
-        input:focus, select:focus, textarea:focus {
-          border-color: var(--blush);
-          box-shadow: 0 0 0 3px rgba(232,196,176,.22);
-        }
+        input:focus, select:focus, textarea:focus { border-color: var(--blush); box-shadow: 0 0 0 3px rgba(232,196,176,.22); }
         select {
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23C9856A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 15px center;
-          padding-right: 38px; cursor: pointer;
+          background-repeat: no-repeat; background-position: right 15px center; padding-right: 38px; cursor: pointer;
         }
         textarea { resize: none; }
 
-        /* GIFT OPTIONAL AREA */
-        .gift-area {
-          border: 1px dashed rgba(181,169,154,.5);
-          border-radius: 14px; padding: 18px; margin-bottom: 22px;
-        }
-        .gift-area-title {
-          font-size: 11px; font-weight: 500;
-          letter-spacing: 2.5px; text-transform: uppercase;
-          color: var(--rose); margin-bottom: 3px;
-        }
-        .gift-area-note {
-          font-family: 'Cormorant Garamond', serif;
-          font-style: italic; font-size: 15px;
-          color: var(--text-light); margin-bottom: 13px;
-        }
+        .gift-area { border: 1px dashed rgba(181,169,154,.5); border-radius: 14px; padding: 18px; margin-bottom: 22px; }
+        .gift-area-title { font-size: 11px; font-weight: 500; letter-spacing: 2.5px; text-transform: uppercase; color: var(--rose); margin-bottom: 3px; }
+        .gift-area-note { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15px; color: var(--text-light); margin-bottom: 13px; }
         .chips { display: flex; flex-wrap: wrap; gap: 7px; }
         .chip {
           padding: 6px 13px; border-radius: 20px;
-          border: 1px solid rgba(181,169,154,.4);
-          background: rgba(255,255,255,.7);
-          font-size: 12px; color: var(--text);
-          cursor: pointer; transition: all .2s;
-          font-family: 'Jost', sans-serif;
-          user-select: none;
+          border: 1px solid rgba(181,169,154,.4); background: rgba(255,255,255,.7);
+          font-size: 12px; color: var(--text); cursor: pointer; transition: all .2s;
+          font-family: 'Jost', sans-serif; user-select: none;
         }
         .chip:hover { border-color: var(--rose); color: var(--rose); }
         .chip.active { background: var(--rose); border-color: var(--rose); color: #fff; }
+        .chip.outro { border-style: dashed; border-color: rgba(181,169,154,.6); color: var(--text-light); }
+        .chip.outro:hover { border-color: var(--rose); color: var(--rose); border-style: dashed; }
+        .chip.outro.active { background: var(--rose); border-color: var(--rose); color: #fff; border-style: solid; }
 
-        /* ERROR */
         .error-msg {
           background: rgba(201,133,106,.1); border: 1px solid rgba(201,133,106,.3);
-          border-radius: 10px; padding: 12px 16px;
-          font-size: 14px; color: var(--deep-rose);
-          margin-bottom: 18px; text-align: center;
+          border-radius: 10px; padding: 12px 16px; font-size: 14px;
+          color: var(--deep-rose); margin-bottom: 18px; text-align: center;
         }
-
-        /* SUBMIT */
         .btn-submit {
           width: 100%; padding: 17px;
           background: linear-gradient(135deg, var(--rose), var(--deep-rose));
           color: #fff; border: none; border-radius: 14px;
-          font-family: 'Jost', sans-serif;
-          font-size: 12px; font-weight: 500;
-          letter-spacing: 3px; text-transform: uppercase;
-          cursor: pointer; transition: all .3s;
+          font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 500;
+          letter-spacing: 3px; text-transform: uppercase; cursor: pointer; transition: all .3s;
         }
-        .btn-submit:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 40px rgba(160,90,69,.3);
-        }
+        .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(160,90,69,.3); }
         .btn-submit:disabled { opacity: .65; cursor: not-allowed; }
 
-        /* SUCCESS */
         .success-box {
           text-align: center; padding: 56px 32px;
-          background: rgba(255,255,255,.72);
-          border: 1px solid rgba(232,196,176,.4);
-          border-radius: 28px;
-          backdrop-filter: blur(12px);
+          background: rgba(255,255,255,.72); border: 1px solid rgba(232,196,176,.4);
+          border-radius: 28px; backdrop-filter: blur(12px);
         }
         .success-icon { font-size: 56px; margin-bottom: 18px; }
-        .success-box h2 {
-          font-family: 'Cormorant Garamond', serif;
-          font-size: 36px; font-weight: 300;
-          color: var(--dark); margin-bottom: 12px;
-        }
-        .success-box p {
-          font-family: 'Cormorant Garamond', serif;
-          font-style: italic; font-size: 18px;
-          color: var(--text-light); line-height: 1.6;
-        }
+        .success-box h2 { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 300; color: var(--dark); margin-bottom: 12px; }
+        .success-box p { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; color: var(--text-light); line-height: 1.6; }
 
-        /* FOOTER */
-        footer {
-          text-align: center; padding: 40px 24px 56px;
-          font-family: 'Cormorant Garamond', serif;
-          font-style: italic; font-size: 16px; color: var(--taupe);
-        }
+        footer { text-align: center; padding: 40px 24px 56px; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 16px; color: var(--taupe); }
         footer span { color: var(--rose); }
 
-        /* ANIM */
-        @keyframes fadeUp {
-          from { opacity:0; transform:translateY(22px); }
-          to { opacity:1; transform:translateY(0); }
-        }
-        .fade-up { animation: fadeUp .8s ease forwards; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
+        .fade-up  { animation: fadeUp .8s ease forwards; }
         .fade-up-2 { animation: fadeUp .8s ease forwards .15s; opacity: 0; }
-        .fade-up-3 { animation: fadeUp .8s ease forwards .3s; opacity: 0; }
+        .fade-up-3 { animation: fadeUp .8s ease forwards .28s; opacity: 0; }
+        .fade-up-4 { animation: fadeUp .8s ease forwards .4s;  opacity: 0; }
       `}</style>
 
       <div className="page-bg" />
 
       <div className="wrap">
+
+        {/* ── HEADER ── */}
         <header className="fade-up">
           <div className="floral">
-            <span className="petal">🌸</span>
-            <span className="petal">🌿</span>
-            <span className="petal">🌼</span>
-            <span className="petal">🌿</span>
+            <span className="petal">🌸</span><span className="petal">🌿</span>
+            <span className="petal">🌼</span><span className="petal">🌿</span>
             <span className="petal">🌸</span>
           </div>
           <p className="eyebrow">Você está convidado</p>
           <h1>Chá de<br /><em>Casa Nova</em></h1>
           <p className="subtitle">Um novo lar, novas memórias, muito amor</p>
           <div className="divider">
-            <div className="divider-line" />
-            <span className="divider-dot">✦</span>
-            <div className="divider-line" />
+            <div className="divider-line" /><span className="divider-dot">✦</span><div className="divider-line" />
           </div>
           <div className="info-grid">
             <div className="info-card">
@@ -311,34 +288,47 @@ export default function Home() {
               <div className="info-label">Horário</div>
               <div className="info-value">às 17h</div>
             </div>
-           <a 
-  href="https://maps.app.goo.gl/62oAx2DXYkgZBDQP7" 
-  target="_blank" 
-  rel="noopener noreferrer"
-  style={{ textDecoration: 'none', color: 'inherit' }}
->
-  <div className="info-card">
-    <div className="info-icon">📍</div>
-    <div className="info-label">Local</div>
-    <div className="info-value">R. do Campo da feira<br />N°55</div>
-  </div>
-</a>
+            <a href="https://maps.app.goo.gl/62oAx2DXYkgZBDQP7" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="info-card">
+                <div className="info-icon">📍</div>
+                <div className="info-label">Local</div>
+                <div className="info-value">R. do Campo da feira<br />N°55</div>
+              </div>
+            </a>
           </div>
         </header>
 
-        <section className="form-section fade-up-2">
+        {/* ── PRESENTES RESERVADOS ── */}
+        <section className="taken-section fade-up-2">
+          <h2 className="sec-title">Presentes <em>Reservados</em></h2>
+          <p className="sec-note">Estes já foram escolhidos por alguém — evite repetir 💛</p>
+          {takenToShow.length === 0 ? (
+            <div className="taken-empty">Nenhum presente reservado ainda. Seja o primeiro! 🎁</div>
+          ) : (
+            <div className="taken-grid">
+              {takenToShow.map(name => {
+                const gift = ALL_GIFTS.find(g => g.name === name)
+                return (
+                  <div className="taken-tag" key={name}>
+                    <span className="t-emoji">{gift?.emoji || '🎁'}</span> {name}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ── FORMULÁRIO ── */}
+        <section className="form-section fade-up-3">
           <h2 className="sec-title"><em>Confirme</em> sua Presença</h2>
           <p className="sec-note">Nos avise para podermos nos preparar com todo o carinho ✨</p>
-
           <div className="form-card">
             {submitted ? (
               <div className="success-box">
                 <div className="success-icon">
                   {form.attend === 'sim' ? '🎉' : form.attend === 'talvez' ? '🌸' : '💛'}
                 </div>
-                <h2>
-                  {form.attend === 'sim' ? 'Que alegria!' : form.attend === 'talvez' ? 'Anotado!' : 'Obrigado!'}
-                </h2>
+                <h2>{form.attend === 'sim' ? 'Que alegria!' : form.attend === 'talvez' ? 'Anotado!' : 'Obrigado!'}</h2>
                 <p>
                   {form.attend === 'sim'
                     ? `Mal podemos esperar para te receber, ${firstName}! Nossa casa já fica mais bonita com a sua presença.`
@@ -351,14 +341,8 @@ export default function Home() {
               <form onSubmit={handleSubmit}>
                 <div className="form-group">
                   <label>Seu nome</label>
-                  <input
-                    type="text"
-                    placeholder="Como posso te chamar?"
-                    value={form.name}
-                    onChange={e => set('name', e.target.value)}
-                  />
+                  <input type="text" placeholder="Como posso te chamar?" value={form.name} onChange={e => set('name', e.target.value)} />
                 </div>
-
                 <div className="form-row">
                   <div className="form-group">
                     <label>Você virá?</label>
@@ -385,11 +369,11 @@ export default function Home() {
                   <div className="gift-area-title">Pensou em trazer algum presente?</div>
                   <div className="gift-area-note">Completamente opcional — marque apenas se quiser 😊</div>
                   <div className="chips">
-                    {gifts.map(g => (
+                    {visibleGifts.map(g => (
                       <span
                         key={g.id}
-                        className={`chip ${form.giftChoice === g.name ? 'active' : ''}`}
-                        onClick={() => set('giftChoice', form.giftChoice === g.name ? '' : g.name)}
+                        className={`chip${g.id === 99 ? ' outro' : ''} ${form.giftChoice === g.name ? 'active' : ''}`}
+                        onClick={() => selectGift(g.name)}
                       >
                         {g.emoji} {g.name}
                       </span>
@@ -399,12 +383,7 @@ export default function Home() {
 
                 <div className="form-group">
                   <label>Mensagem carinhosa (opcional)</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Escreva algo para os anfitriões..."
-                    value={form.message}
-                    onChange={e => set('message', e.target.value)}
-                  />
+                  <textarea rows={3} placeholder="Escreva algo para os anfitriões..." value={form.message} onChange={e => set('message', e.target.value)} />
                 </div>
 
                 {error && <div className="error-msg">{error}</div>}
@@ -418,7 +397,7 @@ export default function Home() {
         </section>
       </div>
 
-      <footer className="fade-up-3">
+      <footer className="fade-up-4">
         Feito com muito amor para celebrar o nosso novo lar 🏡 <span>♥</span>
       </footer>
     </>
